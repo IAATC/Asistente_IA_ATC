@@ -90,7 +90,7 @@ if model is None or index is None:
 def load_language_model():
     try:
         # Using a smaller model for demonstration, consider a larger one for better results
-        llm_model = pipeline("text-generation", model="distilgpt2")
+        llm_model = pipeline("question-answering", model="distilbert/distilbert-base-uncased")
         st.success("Language model loaded successfully.")
         return llm_model
     except Exception as e:
