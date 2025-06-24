@@ -89,7 +89,7 @@ if model is None or index is None:
 @st.cache_resource # Cache the language model
 def load_language_model():
     try:
-        # Using a smaller model for demonstration, consider a larger one for better results
+        # Using a better model for Question Answering
         llm_model = pipeline("question-answering", model="distilbert/distilbert-base-uncased")
         st.success("Language model loaded successfully.")
         return llm_model
@@ -120,40 +120,37 @@ def ask_pdf_ai(question, model, index, chunks, llm):
         relevant_chunks = [chunks[i] for i in indices[0]]
         context = "\n".join(relevant_chunks)
 
-        prompt = f"Based on the following text:\n{context}\n\nAnswer the question: {question}"
+        # Prepare input for the question-answering pipeline
+        qa_input = {
+            'question': question,
+            'context': context
+        }
 
-        # Adjust max_new_tokens as needed
-        # Add error handling for model inference
+        # Use the language model to generate a response
+        # For question-answering pipeline, the output is a dictionary
         try:
-            response = llm(prompt, max_new_tokens=200, num_return_sequences=1)[0]['generated_text']
+            response = llm(qa_input) # Pass the dictionary input
 
-            # Attempt to clean the response (this might need refinement)
-            try:
-                # Find the start of the answer by looking for the end of the prompt
-                # This is a simple approach and might not work perfectly with all LLMs
-                prompt_end_indicator = f"Answer the question: {question}"
-                prompt_end_index = response.find(prompt_end_indicator)
-                if prompt_end_index != -1:
-                    # Add the length of the indicator and a little extra to get past it
-                    clean_response = response[prompt_end_index + len(prompt_end_indicator):].strip()
-                    # Remove potential remnants of the prompt or unwanted characters at the beginning
-                    clean_response = re.sub(r'^["\'\s,.:;]+', '', clean_response)
-                else:
-                    # If prompt indicator not found, return the full response
-                    clean_response = response.strip()
-            except Exception as e:
-                st.warning(f"Could not fully clean response: {e}")
-                clean_response = response.strip() # Fallback to returning the full response
+            # The response from question-answering pipeline is a dict with keys like 'answer', 'score', 'start', 'end'
+            # We are interested in the 'answer'
+            clean_response = response.get('answer', "Could not find an answer in the provided text.")
+
+            # Optionally, add some context or confidence score if needed
+            # score = response.get('score')
+            # clean_response = f"Answer: {answer} (Score: {score:.2f})"
+
 
             return clean_response
 
         except Exception as e:
             st.error(f"Error during language model inference: {e}")
-            return "An error occurred while generating the response."
+            # Provide a more informative error or fallback
+            return f"An error occurred while generating the response. Details: {e}"
 
     except Exception as e:
         st.error(f"Error during search or embedding: {e}")
-        return "An error occurred while processing your question."
+        # Provide a more informative error or fallback
+        return f"An error occurred while processing your question. Details: {e}"
 
 
 # --- Streamlit Interface Logic ---
